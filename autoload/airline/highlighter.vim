@@ -1,4 +1,4 @@
-" MIT License. Copyright (c) 2013-2021 Bailey Ling Christian Brabandt et al.
+" MIT License. Copyright (c) 2013-2026 Bailey Ling Christian Brabandt et al.
 " vim: et ts=2 sts=2 sw=2 et
 
 scriptencoding utf-8
@@ -170,7 +170,7 @@ if !exists(":def") || !airline#util#has_vim9_script()
       call airline#highlighter#highlight_modified_inactive(winbufnr(winnr))
     endfor
     call airline#highlighter#highlight(['inactive'])
-    if getbufvar( bufnr('%'), '&modified'  )
+    if getbufvar( bufnr('%'), '&modified'  ) && &buftype != 'terminal'
       call airline#highlighter#highlight(['normal', 'modified'])
     else
       call airline#highlighter#highlight(['normal'])
@@ -184,6 +184,13 @@ if !exists(":def") || !airline#util#has_vim9_script()
   function! airline#highlighter#add_separator(from, to, inverse) abort
     let s:separators[a:from.a:to] = [a:from, a:to, a:inverse]
     call <sid>exec_separator({}, a:from, a:to, a:inverse, '')
+  endfunction
+
+  function! airline#highlighter#remove_separators_for_bufnr(bufnr) abort
+    " remove all separators, that have the buffer number in their name,
+    " but do not be too greedy!
+    let pat = 'c' . a:bufnr . '\(\D\|$\)'
+    call filter(s:separators, 'v:key !~# pat')
   endfunction
 
   function! s:exec_separator(dict, from, to, inverse, suffix) abort
@@ -430,12 +437,11 @@ else
     return res
   enddef
 
-  def airline#highlighter#get_highlight2(fg: list<string>, bg: list<string>, rest1: string = '', rest2: string = '', rest3: string = ''): list<string>
+  def airline#highlighter#get_highlight2(fg: list<string>, bg: list<string>, ...rest: list<string>): list<string>
     var guifg = s:get_syn(fg[0], fg[1], 'gui')
     var guibg = s:get_syn(bg[0], bg[1], 'gui')
     var ctermfg = s:get_syn(fg[0], fg[1], 'cterm')
     var ctermbg = s:get_syn(bg[0], bg[1], 'cterm')
-    var rest = [ rest1, rest2, rest3 ]
     return s:get_array(guifg, guibg, ctermfg, ctermbg, filter(rest, (_, v) => !empty(v)))
   enddef
 
@@ -514,7 +520,7 @@ else
       airline#highlighter#highlight_modified_inactive(winbufnr(winnr))
     endfor
     airline#highlighter#highlight(['inactive'])
-    if getbufvar( bufnr('%'), '&modified'  )
+    if getbufvar( bufnr('%'), '&modified'  ) && &buftype != 'terminal'
       airline#highlighter#highlight(['normal', 'modified'])
     else
       airline#highlighter#highlight(['normal'])
@@ -528,6 +534,13 @@ else
   def airline#highlighter#add_separator(from: string, to: string, inverse: bool): void
     s:separators[from .. to] = [from, to, inverse]
     s:exec_separator({}, from, to, inverse, '')
+  enddef
+
+  def airline#highlighter#remove_separators_for_bufnr(bufnr: string): void
+    # remove all separators, that have the bufnr in its name, make sure we
+    # have a full match here
+    const pat = $'c{bufnr}\(\D\|$\)'
+    filter(s:separators, (k, v) => k !~# pat)
   enddef
 
   def s:exec_separator(dict: dict<any>, from_arg: string, to_arg: string, inverse: bool, suffix: string): void
@@ -682,5 +695,5 @@ else
         endfor
       endif
     endfor
-	enddef
+  enddef
 endif

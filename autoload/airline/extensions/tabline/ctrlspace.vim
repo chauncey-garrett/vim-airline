@@ -1,4 +1,4 @@
-" MIT License. Copyright (c) 2016-2021 Kevin Sapper et al.
+" MIT License. Copyright (c) 2016-2026 Kevin Sapper et al.
 " Plugin: https://github.com/szw/vim-ctrlspace
 " vim: et ts=2 sts=2 sw=2
 
@@ -33,7 +33,7 @@ endfunction
 
 function! airline#extensions#tabline#ctrlspace#add_buffer_section(builder, cur_tab, cur_buf, pull_right)
   let pos_extension = (a:pull_right ? '_right' : '')
-  
+
   let buffer_list = []
   for bufferindex in sort(keys(ctrlspace#api#Buffers(a:cur_tab)), 'N')
     for buffer in ctrlspace#api#BufferList(a:cur_tab)

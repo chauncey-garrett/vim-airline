@@ -2,7 +2,9 @@
 
 This is the Changelog for the vim-airline project.
 
-## [0.12] - Unreleased
+## [0.13] - Unreleased
+
+## [0.12] - 2026-05-02
 - New features
   - Extensions:
     - [poetv](https://github.com/petobens/poet-v) support
@@ -12,22 +14,42 @@ This is the Changelog for the vim-airline project.
     - [vim-dirvish](https://github.com/justinmk/vim-dirvish) support
     - [fzf.vim](https://github.com/junegunn/fzf.vim) support
     - [OmniSharp](https://github.com/OmniSharp/omnisharp-vim) support
-    - [searchcount](https://vim-jp.org/vimdoc-en/eval.html#searchcount())  support
+    - [searchcount](https://vim-jp.org/vimdoc-en/eval.html#searchcount()) support
     - [fern.vim](https://github.com/lambdalisue/fern.vim) support
     - [Vim-CMake](https://github.com/cdelledonne/vim-cmake) support
     - [battery.vim](https://github.com/lambdalisue/battery.vim) support
     - [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) support
     - [gen_tags.vim](https://github.com/jsfaint/gen_tags.vim) support
+    - [vim-rufu](https://github.com/ruby-formatter/rufo-vim) support
+    - [vim-flog](https://github.com/rbong/vim-flog) support
+    - [nvim-lsp](https://github.com/neovim/nvim-lsp) support
+    - [vim9lsp.vim](https://github.com/yegappan/lsp) support
+    - [fcitx.vim](https://github.com/fcitx/fcitx5) support
+    - [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim) support
+    - [codeium](https://github.com/Exafunction/codeium.vim) support
+    - [vimodoro](https://github.com/VimfanTPdvorak/vimodoro) support
+    - [nerdfont](https://github.com/lambdalisue/nerdfont.vim) support
+    - [zhihu](https://github.com/pxwg/zhihu.nvim) Neovim support
     - Ascii Scrollbar support
 - Improvements
   - git branch can also be displayed using [gina.vim](https://github.com/lambdalisue/gina.vim)
   - coc extensions can also show additional status messages as well as the current function
   - [coc-git](https://github.com/neoclide/coc-git) extension integrated into hunks extension
   - rewrote parts using Vim9 Script for performance improvements
+  - [vim-obsession](https://github.com/tpope/vim-obsession) allow to set paused indicator
+  - Display executable symbol for executable script
+  - Support for Neovims global statusline
+  - whitespace extensions: add git conflict marker support
+  - Support tabpanel, including mouse and scroll support (Vim only)
+  - Support multi-line statusline (Vim only)
+  - Support clickable buffers in Vim
+  - Support for showing `repo:/path/file` path like style using the `gitrepo` style
+  - tabline: Expose `<Plug>AirlineSelectFirstTab` and `<Plug>AirlineSelectLastTab`
+  - tabline: Add a new `buffer_idx_mode` that adds a lot more mappings.
 - Other
   - Changed CI from travis-ci.org to GitHub Actions
   - Introduce Vim script static analysis using [reviewdog](https://github.com/reviewdog/action-vint)
-  - Added multiple Vim versions to unit tests using Travis CI
+  - Added multiple Vim versions to unit tests
   - Added option to show short paths in the status line
 
 ## [0.11] - 2019-11-10
@@ -49,9 +71,9 @@ This is the Changelog for the vim-airline project.
   - The branch extensions now also displays whether the repository is in a clean state
     (will append a ! or ⚡if the repository is considered dirty).
   - The whitespace extensions will also check for conflict markers
-  - `:AirlineRefresh` command now takes an additional `!` attribute, that **skips** 
+  - `:AirlineRefresh` command now takes an additional `!` attribute, that **skips**
     recreating the highlighting groups (which might have a serious performance
-    impact if done very often, as might be the case when the configuration variable 
+    impact if done very often, as might be the case when the configuration variable
     `airline_skip_empty_sections` is active).
   - airline can now also detect multiple cursor mode (issue [#1933](https://github.com/vim-airline/vim-airline/issues/1933))
   - expose hunks output using the function `airline#extensions#hunks#get_raw_hunks()` to the outside [#1877](https://github.com/vim-airline/vim-airline/pull/1877)
@@ -85,7 +107,7 @@ This is the Changelog for the vim-airline project.
   - [fugitive](https://github.com/tpope/vim-fugitive) plugin has been refactored
     causing adjustments for vim-airline, also uses Fugitives new API calls
   - some improvements to Vims terminal mode
-  - Allow to use alternative seperators for inactive windows ([#1236](https://github.com/vim-airline/vim-airline/issues/1236))
+  - Allow to use alternative separators for inactive windows ([#1236](https://github.com/vim-airline/vim-airline/issues/1236))
   - Statusline can be set to inactive, whenever Vim loses focus (using FocusLost autocommand)
 
 ## [0.9] - 2018-01-15
@@ -135,7 +157,7 @@ This is the Changelog for the vim-airline project.
 ## [0.8] - 2016-03-09
 - Changes
   - Airline converted to an organization and moved to new [repository](https://github.com/vim-airline/vim-airline)
-  - Themes have been split into an separate repository [vim-airline-themes](https://github.com/vim-airline/vim-airline-themes)
+  - Themes have been split into a separate repository [vim-airline-themes](https://github.com/vim-airline/vim-airline-themes)
 - Improvements
   - Extensions
     - branch: support Git and Mercurial simultaneously, untracked files

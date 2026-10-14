@@ -1,10 +1,11 @@
-" MIT License. Copyright (c) 2013-2021
+" MIT License. Copyright (c) 2013-2026 Bailey Ling, Christian Brabandt et al.
 " vim: et ts=2 sts=2 sw=2 et
 
 scriptencoding utf-8
 
 function! airline#extensions#scrollbar#calculate() abort
-  if winwidth(0) > 200 && get(w:, 'airline_active', 0)
+  if winwidth(0) > get(g:, 'airline#extensions#scrollbar#minwidth', 200)
+      \ && get(w:, 'airline_active', 0)
     let overwrite = 0
     if &encoding ==? 'utf-8' && !get(g:, 'airline_symbols_ascii', 0)
       let [left, right, middle] = [ '|', '|', '█']

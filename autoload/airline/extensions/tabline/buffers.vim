@@ -1,11 +1,11 @@
-" MIT License. Copyright (c) 2013-2021 Bailey Ling et al.
+" MIT License. Copyright (c) 2013-2026 Bailey Ling, Christian Brabandt et al.
 " vim: et ts=2 sts=2 sw=2
 
 scriptencoding utf-8
 
 let s:spc = g:airline_symbols.space
-
 let s:current_bufnr = -1
+let s:current_tabnr = -1
 let s:current_modified = 0
 let s:current_tabline = ''
 let s:current_visible_buffers = []
@@ -49,14 +49,15 @@ function! airline#extensions#tabline#buffers#invalidate()
 endfunction
 
 function! airline#extensions#tabline#buffers#get()
+  let curbuf = bufnr('%')
+  let curtab = tabpagenr()
   try
     call <sid>map_keys()
   catch
     " no-op
   endtry
-  let cur = bufnr('%')
-  if cur == s:current_bufnr && &columns == s:column_width
-    if !g:airline_detect_modified || getbufvar(cur, '&modified') == s:current_modified
+  if curbuf == s:current_bufnr && curtab == s:current_tabnr && &columns == s:column_width
+    if !g:airline_detect_modified || getbufvar(curbuf, '&modified') == s:current_modified
       return s:current_tabline
     endif
   endif
@@ -77,10 +78,10 @@ function! airline#extensions#tabline#buffers#get()
   let b.overflow_group = 'airline_tabhid'
   let b.buffers = airline#extensions#tabline#buflist#list()
   if get(g:, 'airline#extensions#tabline#current_first', 0)
-    if index(b.buffers, cur) > -1
-      call remove(b.buffers, index(b.buffers, cur))
+    if index(b.buffers, curbuf) > -1
+      call remove(b.buffers, index(b.buffers, curbuf))
     endif
-    let b.buffers = [cur] + b.buffers
+    let b.buffers = [curbuf] + b.buffers
   endif
 
   function! b.get_group(i) dict
@@ -96,6 +97,7 @@ function! airline#extensions#tabline#buffers#get()
   endfunction
 
   if has("tablineat")
+    " Neovim version
     function! b.get_pretitle(i) dict
       let bufnum = get(self.buffers, a:i, -1)
       return '%'.bufnum.'@airline#extensions#tabline#buffers#clickbuf@'
@@ -103,6 +105,17 @@ function! airline#extensions#tabline#buffers#get()
 
     function! b.get_posttitle(i) dict
       return '%X'
+    endfunction
+  endif
+
+  if has("statusline_click")
+    " Vim version
+    function! b.get_pretitle(i) dict
+      return '%'.get(self.buffers, a:i, -1).'[airline#extensions#tabline#buffers#clickbufVim]'
+    endfunction
+
+    function! b.get_posttitle(i) dict
+      return '%[]'
     endfunction
   endif
 
@@ -129,7 +142,7 @@ function! airline#extensions#tabline#buffers#get()
     endif
   endfunction
 
-  let current_buffer = max([index(b.buffers, cur), 0])
+  let current_buffer = max([index(b.buffers, curbuf), 0])
   let last_buffer = len(b.buffers) - 1
   call b.insert_titles(current_buffer, 0, last_buffer)
 
@@ -142,7 +155,8 @@ function! airline#extensions#tabline#buffers#get()
 
   call airline#extensions#tabline#add_tab_label(b)
 
-  let s:current_bufnr = cur
+  let s:current_bufnr = curbuf
+  let s:current_tabnr = curtab
   let s:column_width = &columns
   let s:current_tabline = b.build()
   let s:current_visible_buffers = copy(b.buffers)
@@ -207,9 +221,66 @@ function! s:map_keys()
     endif
     noremap <silent> <Plug>AirlineSelectPrevTab :<C-u>call <SID>jump_to_tab(-v:count1)<CR>
     noremap <silent> <Plug>AirlineSelectNextTab :<C-u>call <SID>jump_to_tab(v:count1)<CR>
+    noremap <silent> <Plug>AirlineSelectFirstTab :<C-u>call <SID>select_tab(0)<CR>
+    noremap <silent> <Plug>AirlineSelectLastTab :<C-u>call <SID>select_tab(len(airline#extensions#tabline#buflist#list()) - 1)<CR>
     " Enable this for debugging
     " com! AirlineBufferList :echo map(copy(s:current_visible_buffers), {i,k -> k.": ".bufname(k)})
   endif
+endfunction
+
+function! airline#extensions#tabline#buffers#clickbufVim(dict) abort
+    " Clickable buffers in Vim, requires v9.2.0338
+
+    " single mouse button click without modifiers pressed
+    if a:dict.nclicks == 1 && empty(a:dict.mods)
+      if a:dict.button is# 'l'
+        " left button - switch to buffer
+        try
+          silent execute 'buffer' a:dict.minwid
+        catch
+          call airline#util#warning("Cannot switch buffer, current buffer is modified! See :h 'hidden'")
+        endtry
+      elseif a:dict.button is# 'm'
+        " middle button - delete buffer
+
+        if get(g:, 'airline#extensions#tabline#middle_click_preserves_windows', 0) == 0 || winnr('$') == 1
+          " just simply delete the clicked buffer. This will cause windows
+          " associated with the clicked buffer to be closed.
+          silent execute 'bdelete' a:dict.minwid
+        else
+          " find windows displaying the clicked buffer and open an new
+          " buffer in them.
+          let current_window = bufwinnr("%")
+          let window_number = bufwinnr(a:dict.minwid)
+          let last_window_visited = -1
+
+          " Set to 1 if the clicked buffer was open in any windows.
+          let buffer_in_window = 0
+
+          " Find the next window with the clicked buffer open. If bufwinnr()
+          " returns the same window number, this is because we clicked a new
+          " buffer, and then tried editing a new buffer. Vim won't create a
+          " new empty buffer for the same window, so we get the same window
+          " number from bufwinnr(). In this case we just give up and don't
+          " delete the buffer.
+          " This could be made cleaner if we could check if the clicked buffer
+          " is a new buffer, but I don't know if there is a way to do that.
+          while window_number != -1 && window_number != last_window_visited
+            let buffer_in_window = 1
+            silent execute window_number . 'wincmd w'
+            silent execute 'enew'
+            let last_window_visited = window_number
+            let window_number = bufwinnr(a:minwid)
+          endwhile
+          silent execute current_window . 'wincmd w'
+          if window_number != last_window_visited || buffer_in_window == 0
+            silent execute 'bdelete' a:dict.minwid
+          endif
+        endif
+      endif
+    endif
+    " force a redraw
+    return 1
 endfunction
 
 function! airline#extensions#tabline#buffers#clickbuf(minwid, clicks, button, modifiers) abort
@@ -220,7 +291,11 @@ function! airline#extensions#tabline#buffers#clickbuf(minwid, clicks, button, mo
     if a:clicks == 1 && a:modifiers !~# '[^ ]'
       if a:button is# 'l'
         " left button - switch to buffer
-        silent execute 'buffer' a:minwid
+        try
+          silent execute 'buffer' a:minwid
+        catch
+          call airline#util#warning("Cannot switch buffer, current buffer is modified! See :h 'hidden'")
+        endtry
       elseif a:button is# 'm'
         " middle button - delete buffer
 

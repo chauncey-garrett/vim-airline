@@ -1,4 +1,4 @@
-" MIT License. Copyright (c) 2013-2021 Bailey Ling et al.
+" MIT License. Copyright (c) 2013-2026 Bailey Ling, Christian Brabandt et al.
 " vim: et ts=2 sts=2 sw=2
 
 " http://got-ravings.blogspot.com/2008/10/vim-pr0n-statusline-whitespace-flags.html
@@ -8,11 +8,14 @@ scriptencoding utf-8
 let s:show_message = get(g:, 'airline#extensions#whitespace#show_message', 1)
 let s:symbol = get(g:, 'airline#extensions#whitespace#symbol', g:airline_symbols.whitespace)
 let s:default_checks = ['indent', 'trailing', 'mixed-indent-file', 'conflicts']
+let s:searchcount = exists('*searchcount')
 
 let s:enabled = get(g:, 'airline#extensions#whitespace#enabled', 1)
 let s:skip_check_ft = {'make': ['indent', 'mixed-indent-file'],
       \ 'csv': ['indent', 'mixed-indent-file'],
-      \ 'mail': ['trailing']}
+      \ 'mail': ['trailing'],
+      \ 'diff': ['trailing'],
+      \ 'gitcommit': ['trailing']}
 
 function! s:check_mixed_indent()
   let indent_algo = get(g:, 'airline#extensions#whitespace#mixed_indent_algo', 0)
@@ -51,8 +54,9 @@ endfunction
 
 function! s:conflict_marker()
   " Checks for git conflict markers
-  let annotation = '\%([0-9A-Za-z_.:]\+\)\?'
-  if match(['rst', 'markdown'], &ft) >= 0
+  " space required for jj conflict marker: #2727
+  let annotation = '\%([0-9A-Za-z_.: ]\+\)\?'
+  if match(['rst', 'markdown', 'rmd'], &ft) >= 0
     " rst filetypes use '=======' as header
     let pattern = '^\%(\%(<\{7} '.annotation. '\)\|\%(>\{7\} '.annotation.'\)\)$'
   else
@@ -60,6 +64,19 @@ function! s:conflict_marker()
   endif
   return search(pattern, 'nw')
 endfunction
+
+function! s:conflict_marker_count()
+  if !s:searchcount
+    return 0
+  endif
+  " Checks for git conflict markers
+  " space required for jj conflict marker: #2727
+  let annotation = '\%([0-9A-Za-z_.: ]\+\)\?'
+  let pattern = '^<\{7} '.annotation. '$'
+  let cnt = searchcount(#{pattern: pattern, recompute: 1, timeout: 10})
+  return has_key(cnt, 'total') ? cnt.total : 0
+endfunction
+
 
 function! airline#extensions#whitespace#check()
   let max_lines = get(g:, 'airline#extensions#whitespace#max_lines', 20000)
@@ -108,6 +125,7 @@ function! airline#extensions#whitespace#check()
     let conflicts = 0
     if index(checks, 'conflicts') > -1
       let conflicts = s:conflict_marker()
+      let conflicts_count = s:conflict_marker_count()
     endif
 
     if trailing != 0 || mixed != 0 || long != 0 || !empty(mixed_file) || conflicts != 0
@@ -138,9 +156,15 @@ function! airline#extensions#whitespace#check()
         if conflicts != 0
           let conflicts_fmt = get(g:, 'airline#extensions#whitespace#conflicts_format', '[%s]conflicts')
           let b:airline_whitespace_check .= space.printf(conflicts_fmt, conflicts)
+          if conflicts_count > 1
+            let b:airline_whitespace_check .= printf('*%d', conflicts_count)
+          endif
         endif
       endif
     endif
+  endif
+  if airline#util#has_multiline()
+    return b:airline_whitespace_check
   endif
   return airline#util#shorten(b:airline_whitespace_check, 120, 9)
 endfunction
@@ -159,8 +183,16 @@ function! airline#extensions#whitespace#toggle()
 
   if exists("g:airline#extensions#whitespace#enabled")
     let g:airline#extensions#whitespace#enabled = s:enabled
-    if s:enabled && match(g:airline_section_warning, '#whitespace#check') < 0
-      let g:airline_section_warning .= airline#section#create(['whitespace'])
+    if s:enabled
+      if airline#util#has_multiline() && exists('g:airline_section_warning2')
+        if match(g:airline_section_warning2, '#whitespace#check') < 0
+          let g:airline_section_warning2 .= airline#section#create(['whitespace'])
+        endif
+      else
+        if match(g:airline_section_warning, '#whitespace#check') < 0
+          let g:airline_section_warning .= airline#section#create(['whitespace'])
+        endif
+      endif
       call airline#update_statusline()
     endif
   endif
@@ -192,7 +224,7 @@ function! s:ws_refresh()
     return
   endif
   unlet! b:airline_whitespace_check
-  if get(g:, 'airline_skip_empty_sections', 0)
+  if get(g:, 'airline_skip_empty_sections', 0) || airline#util#has_multiline()
     exe ':AirlineRefresh!'
   endif
   let b:airline_ws_changedtick = b:changedtick
